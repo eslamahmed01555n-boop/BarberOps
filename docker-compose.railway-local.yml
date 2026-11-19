@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: barberops
+      POSTGRES_USER: barberops
+      POSTGRES_PASSWORD: barberops_local_only
+    ports:
+      - "5433:5432"
+    volumes:
+      - barberops_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barberops -d barberops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://barberops:barberops_local_only@postgres:5432/barberops
+      PERSISTENCE_MODE: postgres
+      DEMO_MODE: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  barberops_pgdata:
