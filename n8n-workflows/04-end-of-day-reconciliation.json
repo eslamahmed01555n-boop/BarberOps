@@ -1,0 +1,57 @@
+{
+  "name": "BarberOps | End of day reconciliation",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 22 * * *"}]}},
+      "id": "b4d6e8f0-9a65-4f32-8dd0-0de6a5b1d001",
+      "name": "نهاية الوردية 22:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {"method": "GET", "url": "={{$env.BARBEROPS_BASE_URL + '/api/ops/reconcile/today'}}", "options": {}},
+      "id": "b4d6e8f0-9a65-4f32-8dd0-0de6a5b1d002",
+      "name": "قراءة تقرير المصالحة",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {"jsCode": "const open = $json.unresolvedCount ?? 0;\nconst queue = $json.queueCount ?? 0;\nreturn [{ json: { ...$json, status: open === 0 && queue === 0 ? 'ready_to_close' : 'needs_review', summary: `الحجوزات المفتوحة: ${open} — قائمة الانتظار: ${queue}`, note: open === 0 && queue === 0 ? 'تمت المراجعة ولا توجد حالات مفتوحة' : 'يوجد تشغيل مفتوح يحتاج قرار الموظف' } }];"},
+      "id": "b4d6e8f0-9a65-4f32-8dd0-0de6a5b1d003",
+      "name": "تقييم الإغلاق",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.BARBEROPS_BASE_URL + '/api/ops/reconcile/commit'}}", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { note: $json.note, status: $json.status, unresolvedCount: $json.unresolvedCount, queueCount: $json.queueCount } }}", "options": {}},
+      "id": "b4d6e8f0-9a65-4f32-8dd0-0de6a5b1d004",
+      "name": "تسجيل المصالحة",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [200, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.STAFF_ALERT_WEBHOOK_URL}}", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { type: 'end_of_day', status: $json.status, summary: $json.summary, recommendation: $json.recommendation } }}", "options": {}},
+      "id": "b4d6e8f0-9a65-4f32-8dd0-0de6a5b1d005",
+      "name": "إرسال ملخص للاستقبال",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "نهاية الوردية 22:00": {"main": [[{"node": "قراءة تقرير المصالحة", "type": "main", "index": 0}]]},
+    "قراءة تقرير المصالحة": {"main": [[{"node": "تقييم الإغلاق", "type": "main", "index": 0}]]},
+    "تقييم الإغلاق": {"main": [[{"node": "تسجيل المصالحة", "type": "main", "index": 0}]]},
+    "تسجيل المصالحة": {"main": [[{"node": "إرسال ملخص للاستقبال", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "Africa/Cairo"},
+  "versionId": "f7e44c2c-efbb-4ed4-9cf5-1b6c8a9f1004",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

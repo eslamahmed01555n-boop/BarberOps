@@ -1,0 +1,48 @@
+{
+  "name": "BarberOps | Appointment reminders",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "minutes", "minutesInterval": 15}]}},
+      "id": "c7b5c89e-7d4f-4fa1-8fbf-0de6a5b1a001",
+      "name": "كل 15 دقيقة",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {"method": "GET", "url": "={{$env.BARBEROPS_BASE_URL + '/api/ops/reminders/due'}}", "options": {}},
+      "id": "c7b5c89e-7d4f-4fa1-8fbf-0de6a5b1a002",
+      "name": "قراءة التذكيرات المستحقة",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {"jsCode": "const items = $json.items ?? [];\nreturn items.map(item => ({ json: { ...item, channel: 'whatsapp', template: 'appointment_reminder', text: item.message } }));"},
+      "id": "c7b5c89e-7d4f-4fa1-8fbf-0de6a5b1a003",
+      "name": "تجهيز رسالة التذكير",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.MESSAGING_PROVIDER_URL}}", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { to: $json.phone, type: $json.template, text: $json.text, bookingId: $json.bookingId } }}", "options": {}},
+      "id": "c7b5c89e-7d4f-4fa1-8fbf-0de6a5b1a004",
+      "name": "إرسال عبر مزود الرسائل",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "كل 15 دقيقة": {"main": [[{"node": "قراءة التذكيرات المستحقة", "type": "main", "index": 0}]]},
+    "قراءة التذكيرات المستحقة": {"main": [[{"node": "تجهيز رسالة التذكير", "type": "main", "index": 0}]]},
+    "تجهيز رسالة التذكير": {"main": [[{"node": "إرسال عبر مزود الرسائل", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "Africa/Cairo"},
+  "versionId": "f7e44c2c-efbb-4ed4-9cf5-1b6c8a9f1001",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

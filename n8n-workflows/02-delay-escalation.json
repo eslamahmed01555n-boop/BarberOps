@@ -1,0 +1,48 @@
+{
+  "name": "BarberOps | Delay escalation",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "minutes", "minutesInterval": 5}]}},
+      "id": "f6e3d3e1-6f43-4f10-8bb0-0de6a5b1b001",
+      "name": "فحص التأخير كل 5 دقائق",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {"method": "GET", "url": "={{$env.BARBEROPS_BASE_URL + '/api/ops/alerts/delays'}}", "options": {}},
+      "id": "f6e3d3e1-6f43-4f10-8bb0-0de6a5b1b002",
+      "name": "قراءة حالات التأخير",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {"jsCode": "const alerts = $json.items ?? [];\nreturn alerts.map(alert => ({ json: { severity: alert.severity, title: alert.title, detail: alert.detail, bookingId: alert.bookingId, text: `تنبيه تشغيل: ${alert.title} — ${alert.detail}` } }));"},
+      "id": "f6e3d3e1-6f43-4f10-8bb0-0de6a5b1b003",
+      "name": "صياغة تصعيد الموظف",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.STAFF_ALERT_WEBHOOK_URL}}", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { title: $json.title, text: $json.text, bookingId: $json.bookingId, severity: $json.severity } }}", "options": {}},
+      "id": "f6e3d3e1-6f43-4f10-8bb0-0de6a5b1b004",
+      "name": "إرسال تنبيه للاستقبال",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "فحص التأخير كل 5 دقائق": {"main": [[{"node": "قراءة حالات التأخير", "type": "main", "index": 0}]]},
+    "قراءة حالات التأخير": {"main": [[{"node": "صياغة تصعيد الموظف", "type": "main", "index": 0}]]},
+    "صياغة تصعيد الموظف": {"main": [[{"node": "إرسال تنبيه للاستقبال", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "Africa/Cairo"},
+  "versionId": "f7e44c2c-efbb-4ed4-9cf5-1b6c8a9f1002",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

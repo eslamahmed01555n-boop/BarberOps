@@ -1,0 +1,49 @@
+{
+  "name": "BarberOps | Walk-in intake",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "barberops/walk-in", "responseMode": "lastNode", "options": {}},
+      "id": "a5c7d8e9-8f54-4f21-9cc0-0de6a5b1c001",
+      "name": "استقبال Walk-in",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-520, 0],
+      "webhookId": "a5c7d8e9-8f54-4f21-9cc0-0de6a5b1c101"
+    },
+    {
+      "parameters": {"jsCode": "const body = $json.body ?? $json;\nreturn [{ json: { customerName: body.customerName ?? body.name, phone: body.phone ?? '', service: body.service ?? 'قص شعر', barberPreference: body.barberPreference ?? body.preferredBarber ?? 'أي حلاق', source: 'walk_in' } }];"},
+      "id": "a5c7d8e9-8f54-4f21-9cc0-0de6a5b1c002",
+      "name": "توحيد بيانات العميل",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.BARBEROPS_BASE_URL + '/api/ops/walk-ins'}}", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { customerName: $json.customerName, phone: $json.phone, service: $json.service, barberPreference: $json.barberPreference } }}", "options": {}},
+      "id": "a5c7d8e9-8f54-4f21-9cc0-0de6a5b1c003",
+      "name": "إضافة لقائمة الانتظار",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {"jsCode": "return [{ json: { ok: true, message: 'تم تسجيل العميل في قائمة الانتظار', dashboard: $json } }];"},
+      "id": "a5c7d8e9-8f54-4f21-9cc0-0de6a5b1c004",
+      "name": "رد موحد",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "استقبال Walk-in": {"main": [[{"node": "توحيد بيانات العميل", "type": "main", "index": 0}]]},
+    "توحيد بيانات العميل": {"main": [[{"node": "إضافة لقائمة الانتظار", "type": "main", "index": 0}]]},
+    "إضافة لقائمة الانتظار": {"main": [[{"node": "رد موحد", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "Africa/Cairo"},
+  "versionId": "f7e44c2c-efbb-4ed4-9cf5-1b6c8a9f1003",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}
